@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy Bird</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #87CEEB;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Set canvas dimensions
+        canvas.width = 400;
+        canvas.height = 600;
+
+        // Game variables
+        const gravity = 0.5;
+        const birdSize = 30;
+        let birdY = canvas.height / 2;
+        let birdVelocity = 0;
+        const pipeWidth = 60;
+        const pipeGap = 150;
+        const pipeSpeed = 2;
+        let pipes = [];
+        let score = 0;
+        let gameRunning = true;
+
+        // Generate a random score for the bot
+        const randomBotScore = Math.floor(Math.random() * 12) + 1;
+
+        // Create pipes
+        function createPipe() {
+            const pipeHeight = Math.random() * (canvas.height - pipeGap - 100) + 50;
+            pipes.push({
+                x: canvas.width,
+                top: pipeHeight,
+                bottom: pipeHeight + pipeGap
+            });
+        }
+
+        // Draw bird
+        function drawBird() {
+            ctx.fillStyle = 'black';
+            ctx.beginPath();
+            ctx.arc(50, birdY, birdSize / 2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Draw pipes
+        function drawPipes() {
+            ctx.fillStyle = 'green';
+            pipes.forEach(pipe => {
+                ctx.fillRect(pipe.x, 0, pipeWidth, pipe.top);
+                ctx.fillRect(pipe.x, pipe.bottom, pipeWidth, canvas.height - pipe.bottom);
+            });
+        }
+
+        // Update pipes
+        function updatePipes() {
+            pipes.forEach(pipe => {
+                pipe.x -= pipeSpeed;
+            });
+            pipes = pipes.filter(pipe => pipe.x + pipeWidth > 0);
+        }
+
+        // Check collisions
+        function checkCollision() {
+            if (birdY - birdSize / 2 <= 0 || birdY + birdSize / 2 >= canvas.height) {
+                return true;
+            }
+            for (const pipe of pipes) {
+                if (
+                    50 + birdSize / 2 > pipe.x &&
+                    50 - birdSize / 2 < pipe.x + pipeWidth &&
+                    (birdY - birdSize / 2 < pipe.top || birdY + birdSize / 2 > pipe.bottom)
+                ) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Disable all keydown events temporarily
+        function disableAllKeys() {
+            document.addEventListener('keydown', blockAllKeys, true);
+        }
+
+        // Re-enable all keydown events
+        function enableAllKeys() {
+            document.removeEventListener('keydown', blockAllKeys, true);
+        }
+
+        // Block all keydown events
+        function blockAllKeys(e) {
+            e.preventDefault();
+        }
+
+        // Game loop
+        function gameLoop() {
+            if (!gameRunning) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Bird movement
+            birdVelocity += gravity;
+            birdY += birdVelocity;
+
+            // Draw bird
+            drawBird();
+
+            // Update and draw pipes
+            updatePipes();
+            drawPipes();
+
+            // Check for collisions
+            if (checkCollision()) {
+                gameRunning = false;
+
+                // Disable all keys while showing the alert
+                disableAllKeys();
+
+                // Display results
+                if (score > randomBotScore) {
+                    alert(`Game Over!\nYour score: ${score}\nBot's score: ${randomBotScore}\nYou beat the bot!`);
+                } else if (score === randomBotScore) {
+                    alert(`Game Over!\nYour score: ${score}\nBot's score: ${randomBotScore}\nIt's a tie!`);
+                } else {
+                    alert(`Game Over!\nYour score: ${score}\nBot's score: ${randomBotScore}\nThe bot beat you!`);
+                }
+
+                // Re-enable all keys after the alert
+                enableAllKeys();
+
+                location.reload(); // Refresh the page
+                return;
+            }
+
+            // Add new pipes
+            if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - 200) {
+                createPipe();
+            }
+
+            // Update score
+            pipes.forEach(pipe => {
+                if (pipe.x + pipeWidth === 50) {
+                    score++;
+                }
+            });
+
+            // Display score
+            ctx.fillStyle = 'black';
+            ctx.font = '20px Arial';
+            ctx.fillText(`Score: ${score}`, 10, 30);
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Start game
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault(); // Prevent default spacebar behavior
+                birdVelocity = -10;
+            }
+        });
+
+        createPipe();
+        gameLoop();
+    </script>
+</body>
+</html>
